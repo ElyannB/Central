@@ -1,0 +1,384 @@
+import discord
+from discord.ext import commands, tasks
+
+intents = discord.Intents.all()
+intents.members = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+@bot.event
+async def on_ready():
+    event_channel = bot.get_channel(1194737748020568154)
+    print("Bot lancé.")
+    await event_channel.send("**INFO** Script lancé")
+    await event_channel.send("**INFO** Connecté au Shard")
+    await bot.change_presence(status=discord.Status.do_not_disturb, activity=discord.Game(name="onetail.fr"))
+
+@bot.event
+async def on_member_join(member):
+    channel = bot.get_channel(1194740158331891843)
+    await channel.send(f"@here Tout le monde, souhaitez la bienvenue à {member.mention}")
+    embed = discord.Embed(title="🌴 Bienvenue chez Ferlix !", description=f"Salut {member.mention}, bienvenue chez Ferlix ! N'hésite pas à faire un tour sur <#1194737206678528041> avant de commencer !!", colour=discord.Colour.blurple())
+    embed.set_image(url="https://i.pinimg.com/originals/8b/35/72/8b357283fd26e3bb18cc1983c0ebdb9c.gif")
+    await channel.send(embed=embed)
+
+# Liste des IDs des utilisateurs auxquels envoyer des messages privés
+admin_ids = [213713606045335552, 456443833220071435, 506805722843971594]
+
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
+
+    # Votre logique de détection de spam ici
+    # Par exemple, vous pouvez vérifier si le message est répétitif, s'il est envoyé trop rapidement, etc.
+
+    if "spam" in message.content.lower():
+        # Envoyer un message privé à chaque utilisateur spécifié dans la liste
+        for admin_id in admin_ids:
+            admin = bot.get_user(admin_id)
+            if admin:
+                embed = discord.Embed(
+                    title="⚠️ Spam détecté ⚠️",
+                    description=f"Du spam a été détecté dans {message.channel.mention}.",
+                    color=discord.Color.red()
+                )
+                try:
+                    await admin.send(embed=embed)
+                except discord.Forbidden:
+                    print(f"Impossible d'envoyer un message à l'utilisateur avec l'ID {admin_id}. Autorisation refusée.")
+
+    await bot.process_commands(message)
+
+# TASKS
+
+
+# END TASK
+
+
+
+@bot.command()
+async def say(ctx, *, text):
+    await ctx.message.delete()
+    await ctx.send(f"{text}")
+
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def promote(ctx, member: discord.Member, role: discord.Role):
+    await member.add_roles(role)
+    await ctx.send(f'🍹 {member.mention} a maintenant le rôle {role.name}.')
+
+@bot.command()
+async def unregister(ctx):
+    await ctx.message.delete()
+    embed = discord.Embed(title="🚨 Révoquation de licence pour Ferlix", description="Ce serveur ne pourra plus utiliser les fonctions de NovaBot, et celui ci ne sera plus protégé par les mesures de sécurité. Merci d'avoir utilisé NovaBot. Tous vos accès et licences ont correctement été revoqués.", color = discord.Colour.red())
+    await ctx.send("**LOG** Lancement du protocole HOS gérant les licences et autorisations des serveurs...")
+    await ctx.send("**LOG** Recherche de l'identifiant correspondant au serveur...")
+    await ctx.send("**LOG** Suppression des autorisations...")
+    await ctx.send("**LOG** Révoquation de la licence...")
+    await ctx.send("**LOG** Révoquation en cours...")
+    await ctx.send(embed=embed)
+    await ctx.send("||@everyone|| Ce serveur a vu sa licence OneTail être révoquée. Les causes peuvent être diverses : non paiement de l'acquittement dû, utilisation frauduleuse, litige avec l'administration. Par conséquent vos accès aux services sont désormais révoqués et vous ne pourrez plus utiliser cette instance qui sera mise hors ligne le temps de la régularisation. Vous pouvez nous contacter pour plus d'informations.")
+
+@bot.command()
+async def register(ctx):
+    await ctx.message.delete()
+    embed = discord.Embed(title="📜 Activation de licence pour Ferlix", description="Ce serveur à fait l'objet d'une activation de licence.", color = discord.Colour.blurple())
+    await ctx.send("**LOG** Lancement du protocole HOS gérant les licences et autorisations des serveurs...")
+    await ctx.send("**LOG** Ajout d'un nouveau référencement pour FERLIX")
+    await ctx.send("**ERREUR** 1 enregistrement pour le nom 'FERLIX' existe déjà. Attribution de licence à l'enregistrement existant...")
+    await ctx.send("**Note** Bienvenue sur le réseau de OneTail. Vous aurez accès à d'autres outils bientôt. Votre facture est de 0.00€.")
+    await ctx.send(embed=embed)
+
+@bot.command()
+@commands.has_permissions(kick_members=True)
+async def warn(ctx, user : discord.Member, *, reason=None):
+    if reason==None:
+        mod = bot.get_channel(1194743783879872552)
+        embed = discord.Embed(title="⛔ Attention!", description=f"{ctx.message.author.mention}, tu as tenté d'effectuer une action de modération sans préciser de motif. Par conséquent, ton action a été annulée. Merci de préciser une raison avant de réessayer", color = discord.Colour.red())
+        await ctx.send(embed=embed)
+        await mod.send(f"@everyone - Tentative d'éxécution de WARN sans motif de {ctx.message.author.mention} (victime : {user.mention})")
+    else:
+        mod = bot.get_channel(1194743783879872552)
+        embed = discord.Embed(title="✅ Avertissement enregistré", description=f"{user.mention} a été averti par {ctx.message.author.mention} pour la raison suivante : {reason}", color = discord.Colour.brand_green())
+        await ctx.send(embed=embed)
+        print(f"{ctx.message.author.name} banned {user.name}, for reason {reason}")
+        libwarn = bot.get_channel(1194750162065707069)
+        embed1 = discord.Embed(title="⚠️ Nouvel avertissement !", color = discord.Colour.yellow())
+        embed1.add_field(name="Issuer", value=f"{ctx.message.author.mention}", inline=True)
+        embed1.add_field(name="Utilisateur averti", value=f"{user.mention}", inline=True)
+        embed1.add_field(name="Raison", value=f"{reason}", inline=False)
+        await libwarn.send(embed=embed1)
+
+@bot.command()
+async def kick(ctx, member: discord.Member, *, reason=None):
+    """Kick a member from the server."""
+    if ctx.author.guild_permissions.kick_members:
+        if member.guild_permissions.administrator:
+            embed = discord.Embed(
+                title="❌ Erreur de production",
+                description="Vous ne pouvez pas expulser un administrateur..",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+        else:
+            await member.kick(reason=reason)
+            embed = discord.Embed(
+                title="✅ Le membre à été expulsé.",
+                description=f"{member.mention} a été kick.",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="Raison:", value=f"{reason}")
+            await ctx.send(embed=embed)
+            channel = bot.get_channel(1194743783879872552)
+            await channel.send(embed=embed)
+    else:
+        embed = discord.Embed(
+            title="❌ Permissions insuffisantes",
+            description="Vous n'avez pas la permission requise pour utiliser cette commande.",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text="Contactez votre administrateur de serveur pour l'obtenir.")
+        await ctx.send(embed=embed)
+
+@bot.command()
+async def ban(ctx, member: discord.Member, *, reason=None):
+    """Bannir un membre du serveur."""
+    if ctx.author.guild_permissions.ban_members:
+        if member.guild_permissions.administrator:
+            embed = discord.Embed(
+                title="Erreur",
+                description="Vous ne pouvez pas bannir un administrateur.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+        else:
+            await member.ban(reason=reason)
+            embed = discord.Embed(
+                title="Membre Banni",
+                description=f"{member.mention} a été banni.",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="Raison:", value=f"{reason}")
+            await ctx.send(embed=embed)
+            chan = bot.get_channel(1194743783879872552)
+            await chan.send(embed=embed)
+    else:
+        embed = discord.Embed(
+            title="Erreur",
+            description="Vous n'avez pas la permission d'utiliser cette commande.",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+
+@bot.command()
+async def status(ctx):
+    await ctx.send(f"Hello {ctx.message.author.mention}, voici le statut actuel du bot :")
+    embed = discord.Embed(title="🔵 En ligne et prêt", description="Le bot est connecté aux services Discord et relié à son serveur source. La connexion actuelle est rapide et bonne.", color = discord.Colour.dark_blue())
+    await ctx.send(embed=embed)
+    embed1 =discord.Embed(title="⚠️ 1 incident en cours", description = "Des ralentissements de réseau peuvent survenir en raison d'une instabilité sur le serveur source.", color = discord.Color.yellow())
+    embed1.set_footer(text="(c) NovaBot by Matsuu and OneTail - 2024 - tous droits réservés. Politique de collecte disponible sur le site officiel de Starcom")
+    await ctx.send(embed=embed1)
+
+@bot.command(alias=['purge', 'delete'])
+@commands.has_permissions(kick_members=True)
+async def clear(ctx, amount:int):
+    if amount == "0":
+        embed = discord.Embed(title="❌ Erreur de syntaxe", description="En raison des limitations imposées par Discord, nous ne pouvons pas purger un salon entier. Il faudra utiliser une fonctionnalité de duplication de salon.", color = discord.Color.red())
+        await ctx.send(embed=embed)
+        mod = await bot.get_channel(1194737748020568154)
+        embed1 = discord.Embed(title="⚠️ Echec de commande", description=f"{ctx.message.author.mention} a tenté d'utiliser `!clear` sans indiquer l'argument `amount`. `!clear` est en erreur.", color=discord.Color.yellow())
+        await mod.send(embed=embed1)
+    else:
+        await ctx.channel.purge(limit=amount)
+
+@bot.command()
+async def dev(ctx):
+    embed=discord.Embed(title="🔰 Commandes en cours de développement", description="La liste suivante indique toutes les commandes qui sont actuellement en cours de développement et de test. Merci de ne pas demander l'ajout de nouvelles commandes similaires a celles contenues dans cette liste", color=discord.Color.orange())
+    embed.add_field(name="🟢 Ready to work:", value="```!events_cmd \n!clear \n!kick \n!ban \n!warn \n!><```")
+    embed.add_field(name="🟡 Still in development:", value="```!dev \n!strike \n!partners \n!proceed \n!link```")
+    embed.add_field(name="🟡 Events in development:", value="```❌ reaction_role()```")
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def events_cmd(ctx, command):
+    embed=discord.Embed(title=f"{command} Status", color=discord.Colour.blurple())
+    if command=="reaction_role":
+        embed.add_field(name="Command/EV Type:", value="`reaction_role`")
+        embed.add_field(name="Status :", value="`Due to technical issues, the development of reaction_role is currently on hold. Please wait a few days before reach us.`")
+        await ctx.send(embed=embed)
+    
+@bot.command(aliases=['assistance', 'aide', 'contact'])
+async def needhelp(ctx):
+    embed=discord.Embed(title="📧 Contacter OneTail", description="Vous pouvez obtenir ci dessous plus d'informations sur le bot et son/ses propriétaires, ainsi que plus d'informations sur la Corporation.", color=discord.Color.yellow())
+    embed.add_field(name="Project name:", value="`NovaBot`")
+    embed.add_field(name="Agency Number:", value="N-751401")
+    embed.add_field(name="Projet owner:", value="<@213713606045335552>")
+    embed.add_field(name="Project Type:", value="OneTail Intern")
+    embed.add_field(name="Website", value="Currently moving from old website, available at https://www.g-nine.eu")
+    embed.add_field(name="Mail:", value="Coming soon")
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def nv_video(ctx, link, *, titre):
+    chan= bot.get_channel(1194741415943622727)
+    embed = discord.Embed(title="⚠️ Nouvelle vidéo !", description=f"{titre}", color = discord.Colour.yellow())
+    embed.add_field(name="Lien :", value=f"{link}")
+    await chan.send(embed=embed)
+    await chan.send("<@&1196400455962599464>")
+    await ctx.message.delete()
+
+@bot.command()
+async def nv_short(ctx, link, *, titre):
+    chan= bot.get_channel(1194741415943622727)
+    embed = discord.Embed(title="⚠️ Nouveau short !", description=f"{titre}", color = discord.Colour.yellow())
+    embed.add_field(name="Lien :", value=f"{link}")
+    await chan.send(embed=embed)
+    await chan.send("<@&1196400519682465823>")
+    await ctx.message.delete()
+
+@bot.command()
+async def live(ctx, link, *, titre):
+    chan= bot.get_channel(1194740874383470612)
+    embed = discord.Embed(title="🔴 Live en cours !", description=f"{ctx.message.author.mention} est en live : {titre}", color = discord.Colour.red())
+    embed.add_field(name="Lien :", value=f"{link}")
+    await chan.send(embed=embed)
+    await chan.send("<@&1196399987614036020>")
+    await ctx.message.delete()
+
+@bot.command()
+async def changelog(ctx, *, changelogp):
+    chan = bot.get_channel(1197597831482064927)
+    embed = discord.Embed(title="📧 New changelog", color = discord.Colour.green())
+    embed.add_field(name="News/Nouveautés:", value=f"{changelogp}")
+    await chan.send(embed=embed)
+    await chan.send("||@everyone||")
+    await ctx.message.delete()
+
+@bot.command()
+async def safety_alert_ferlix(ctx, type, *, description):
+    chan = bot.get_channel(1194735043155857410)
+    embed = discord.Embed(title="🚨 Warning! Security incident", color = discord.Color.red())
+    embed.add_field(name="Category:", value=f"{type}")
+    embed.add_field(name="Description:", value=f"{description}")
+    embed.set_footer(text=f"{ctx.message.author.mention} COPYRIGHT")
+    await chan.send(embed=embed)
+
+@bot.command()
+async def dm(ctx, user : discord.Member, *, text):
+    await ctx.message.delete()
+    await user.send(f"{text}")
+    await ctx.author.send(f"Sended to {user.mention} : {text}")
+   
+@bot.command()
+async def embedsay(ctx, *, text):
+    await ctx.message.delete()
+    embed = discord.Embed(title=f"{text}")
+    await ctx.send(embed=embed)
+   
+@bot.command()
+async def update_inprogress(ctx):
+    await ctx.message.delete()
+    ch = bot.get_channel(1201637031583956992)
+    embed = discord.Embed(title="🔄 Mise à jour en cours...", description="Merci de bien vouloir patienter, et de ne pas interférer avec celle-ci. Nous vous préviendrons lorsque celle ci sera terminée.", color = discord.Color.green())
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def error_while_connecting(ctx):
+    await ctx.message.delete()
+    embed = discord.Embed(title="❌ Unable to connect", description="Please verify your settings/credentials and retry. The server is not responding.", color=discord.Color.red())
+    await ctx.send(embed=embed)
+   
+@bot.command()
+async def update_finish(ctx):
+    await ctx.message.delete()
+    ch = bot.get_channel(1201637031583956992)
+    embed = discord.Embed(title="✅ Mise à jour complétée", description="La mise à jour est terminée et le bot est susceptible de redémarrer.", color = discord.Color.blurple())
+    await ctx.send(embed=embed)
+   
+@bot.command()
+async def support(ctx):
+    await ctx.send(f"Salut {ctx.message.author.mention} ! Tu peux contacter le support et la modération ici https://t.me/nefofficial - N'hésite pas à nous faire un petit coucou :wave:")
+
+@bot.command()
+async def newissue(ctx, typ, status, *, text):
+    ch = bot.get_channel(1194740691310485615)
+    ch2 = bot.get_channel(1201637031583956992)
+    embed = discord.Embed(title="⚠️ Problème signalé", description="Un problème a été signalé. Consultez l'état de celui-ci dans le corps de ce message.", color = discord.Color.yellow())
+    embed.add_field(name="Level:", value=f"{typ}", inline=True)
+    embed.add_field(name="Status:", value=f"{status}", inline=True)
+    embed.add_field(name="Description:", value=f"{text}", inline=False)
+    embed.set_footer(text="More information (possibly) on https://nova.instatus.com - Type !support")
+    await ctx.message.delete()
+    await ch.send(embed=embed)
+
+@bot.command()
+async def reportbug(ctx, *, description):
+    await ctx.message.delete()
+    ch = bot.get_channel(1214878231023587358)
+    embed=discord.Embed(title="🚦 New bug report !", description = f"{description}")
+    embed.add_field(name="Sended by:", value=f"{ctx.message.author.mention}", inline=False)
+    await ch.send("<@213713606045335552> @everyone")
+    await ch.send(embed=embed)
+    await ctx.send(f"✅ {ctx.message.author.mention}, **rapport envoyé avec succès.** Merci de contribuer à l'amélioration de nos services.")
+    embed1 = discord.Embed(description="Rappel du contenu envoyé :", color = discord.Color.blue())
+    embed1.add_field(name="Envoyé par:", value=f"{ctx.message.author.mention}", inline=True)
+    embed1.add_field(name="Envoyé à:", value="support,dev", inline=True)
+    embed1.add_field(name="Corps:", value=f"{description}", inline=False)
+    embed1.set_footer(text="L'ensemble de cet embed correspond au rapport transmis au support du bot. Nous traiterons votre requête dès que possible.")
+    await ctx.send(embed=embed1)
+
+@bot.command()
+async def indispo(ctx, date, heure, *, motif):
+    if motif == None :
+        await ctx.message.delete()
+        embed = discord.Embed(title="❌ Function error", description="Vous devez fournir un argument `MOTIF` en  respectant la syntaxe suivante : exemple pour 01 janvier 2029 à 10h30`!indispo 010129 10H30 <Le motif doit être inséré ici>`", color = discord.Colour.red())
+        await ctx.send(embed=embed)
+    else:
+        await ctx.message.delete()
+        embed = discord.Embed(title="✔ Indispo enregistrée", description="L'indispo a été envoyé aux admins, les autres modérateurs et admins non autorisés ne verront pas votre motif.", color = discord.Colour.green())
+        await ctx.send(embed=embed)
+        embed1 = discord.Embed(title="📕 Indisponibilité reçue", description = "Un modérateur à déposé une indispo pour une durée donnée", color = discord.Colour.red())
+        embed1.add_field(name="Utilisateur :", value=f"{ctx.author.mention}", inline=True)
+        embed1.add_field(name="Date:", value=f"{date}", inline=True)
+        embed1.add_field(name="Heure:", value=f"{heure}", inline=True)
+        embed1.add_field(name="Raison:", value=f"```{motif}```", inline=False)
+        chsend = bot.get_channel(1218536874944102462)
+        await chsend.send(embed=embed1)
+
+@bot.command()
+async def dispo(ctx, date, heure):
+    await ctx.message.delete()
+    embed = discord.Embed(title="✔ Dispo enregistrée", description="La Dispo a été envoyé aux admins", color = discord.Colour.green())
+    await ctx.send(embed=embed)
+    embed1 = discord.Embed(title="📕 Disponibilité reçue", description = "Un modérateur à déposé une Dispo pour une durée donnée", color = discord.Colour.red())
+    embed1.add_field(name="Utilisateur :", value=f"{ctx.author.mention}", inline=True)
+    embed1.add_field(name="Date:", value=f"{date}", inline=True)
+    embed1.add_field(name="Heure:", value=f"{heure}", inline=True)
+    chsend = bot.get_channel(1218536933525815306)
+    await chsend.send(embed=embed1)
+
+@bot.command()
+async def statut(ctx, mention, *, text):
+    await ctx.message.delete()
+    await ctx.send(f"**{mention} a un nouveau statut** : *{text}*")
+
+@bot.command()
+async def transfertmdp(ctx, passwd = None, idw=None):
+    if passwd == None:
+        embed = discord.Embed(title="❌ Opération abandonnée", description="Vous n'avez pas fourni votre mot de passe administrateur.", color =discord.Colour.red())
+        await ctx.send(embed=embed)
+    elif idw == None:
+        embed=discord.Embed(title="❌ Opération abandonnée", description = "Vous n'avez pas fourni l'ID du client distant.", color = discord.Colour.red())
+        await ctx.send(embed=embed)
+    else:
+        embed=discord.Embed(title="🔑 Transfert des autorisations en cours...", description="Arrêt du serveur expéditeur.", color=discord.Colour.blue())
+        await ctx.send(embed=embed)
+        await ctx.send("⚠️ **Prenez la main sur le serveur.** Connectez vous au serveur OT_PARIS avec vos identifiants pour confirmer le transfert dans l'invite qui s'est ouverte (console_log)")
+
+@bot.command()
+async def updaterefresh(ctx):
+    await ctx.send("Transfert terminé, arrêt du client.")
+    await ctx.send("Les données de ce client seront supprimées dans 5 minutes. Vous pouvez télécharger l'archive depuis votre serveur OT_PARIS")
+
+bot.run("TOKEN")
